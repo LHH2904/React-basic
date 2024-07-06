@@ -1,29 +1,58 @@
-import {Button, TextField} from "@mui/material";
-import {Todo} from "./components/Todo";
-import {useState} from "react";
+import {ChangeEvent, useEffect, useState} from "react";
+import { v4 as uuidv4 } from 'uuid';
+import {CreateNewTodo} from "./components/CreateNewTodo";
+import {TodoList} from "./components/TodoList";
 
-type Todo = {id: string ;name:string}
+export type TodoType = {id: string; name:string; isCompleted: boolean};
 
 function App() {
-    const [todoList,setTodoList] = useState<Todo[]>([]); // [state, setState]
+    const [todoList,setTodoList] = useState<TodoType[]>(() => {
+        const saveTodoList = JSON.parse(localStorage.getItem('todoList') ?? '[]');
+        if(saveTodoList?.length) {
+            return saveTodoList;
+        }
+        return [];
+    }); // [state, setState]
     const [newTodoString,setNewTodoString] = useState("");
 
-    const onNewTodoChange = (e) => {
-        console.log({e});
+    const onNewTodoChange = (e: ChangeEvent<HTMLInputElement>) => {
         setNewTodoString(e.target.value);
     }
+
+    const onAddingBtnClick = () =>{
+        const newTodoItem:TodoType = {
+            id: uuidv4(),
+            name: newTodoString,
+            isCompleted: false,
+        }
+        setTodoList([newTodoItem,...todoList])
+        setNewTodoString('')
+    }
+
+    const updateIsCompleted = (todoId: string) => {
+        setTodoList((prevState) => {
+            return prevState.map((todo) => {
+                if(todo.id === todoId) {
+                    return {...todo, isCompleted: !todo.isCompleted };
+                }
+                return todo;
+            })
+        })
+    }
+
+    useEffect(() => {
+        localStorage.setItem('todoList', JSON.stringify(todoList));
+    },[todoList]);
+
   return (
     <>
         <p>This is Todo App</p>
-        <div>
-            <TextField size="small" value={newTodoString} onChange={onNewTodoChange}></TextField>
-            <Button variant="contained">Thêm</Button>
-        </div>
-        <div>
-            {todoList.map((todo) => {
-                    return <Todo name={todo.name}/>;
-            })}
-        </div>
+        <CreateNewTodo
+            newTodoString={newTodoString}
+            onNewTodoChange={onNewTodoChange}
+            onAddingBtnClick={onAddingBtnClick}
+        />
+        <TodoList todoList={todoList} updateIsCompleted={updateIsCompleted} />
     </>
   )
 }
